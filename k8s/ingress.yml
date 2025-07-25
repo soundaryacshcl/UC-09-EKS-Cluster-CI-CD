@@ -2,14 +2,22 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: my-app-ingress
+  namespace: default  # Optional, but make sure it's in the correct namespace
   annotations:
-    kubernetes.io/ingress.class: alb
+    kubernetes.io/ingress.class: "alb"  # Optional for older versions
+    alb.ingress.kubernetes.io/ingress-class: "alb"  # ✅ Required for modern ALB controller
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/backend-protocol: HTTP
+    alb.ingress.kubernetes.io/target-type: ip  # Important if using Fargate or IP targets
 spec:
-  defaultBackend:
-    service:
-      name: my-app-service
-      port:
-        number: 80    
-  
+  ingressClassName: alb  # ✅ Required for Ingress v1
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: my-app-service
+                port:
+                  number: 80
