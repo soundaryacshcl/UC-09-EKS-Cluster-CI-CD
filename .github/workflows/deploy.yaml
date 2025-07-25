@@ -13,6 +13,9 @@ permissions:
 
 env:
   AWS_REGION: ap-south-1
+  ECR_REGISTRY: 436450225331.dkr.ecr.ap-south-1.amazonaws.com
+  AWS_ROLE_ARN: arn:aws:iam::436450225331:role/oidc-assume-role
+
 
 jobs:
   build-push-Flask-app:
@@ -24,22 +27,23 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to Amazon ECR # login ecr
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build Docker Image 
+      - name: Build Docker Image
         run: |
-          docker build -t ${{ vars.ECR_REGISTRY }}/flask-app:${{ github.sha }} ./app
-          docker tag ${{ vars.ECR_REGISTRY }}/flask-app:${{ github.sha }} ${{ vars.ECR_REGISTRY }}/flask-app:latest
+          docker build -t ${{ env.ECR_REGISTRY }}/flask-app:${{ github.sha }} ./app
+          docker tag ${{ env.ECR_REGISTRY }}/flask-app:${{ github.sha }} ${{ env.ECR_REGISTRY }}/flask-app:latest
 
-      - name: Push Docker Image 
+      - name: Push Docker Image
         run: |
-          docker push ${{ vars.ECR_REGISTRY }}/flask-app:${{ github.sha }}
-          docker push ${{ vars.ECR_REGISTRY }}/flask-app:latest
+          docker push ${{ env.ECR_REGISTRY }}/flask-app:${{ github.sha }}
+          docker push ${{ env.ECR_REGISTRY }}/flask-app:latest
+
 
   deploy:
     name: Deploy App and ALB Ingress
@@ -58,7 +62,7 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Setup kubectl
@@ -78,6 +82,6 @@ jobs:
 
       - name: Deployment + Service + Ingress
         run: |
-         sed -i 's@CONTAINER_IMAGE@'"${{ vars.ECR_REGISTRY }}/flask-app:${{ github.sha }}"'@' k8s/deployment.yml
+         sed -i 's@CONTAINER_IMAGE@'"${{ env.ECR_REGISTRY }}/flask-app:${{ github.sha }}"'@' k8s/deployment.yml
          kubectl apply -f k8s/deployment.yml
          kubectl apply -f k8s/ingress.yml
