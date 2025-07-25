@@ -82,6 +82,9 @@ jobs:
 
       - name: Deployment + Service + Ingress
         run: |
-         sed -i 's@CONTAINER_IMAGE@'"${{ env.ECR_REGISTRY }}/flask-app:${{ github.sha }}"'@' k8s/deployment.yml
-         kubectl apply -f k8s/deployment.yml
-         kubectl apply -f k8s/ingress.yml
+          # inject the exact image URI into the manifest
+          sed -i "s|CONTAINER_IMAGE|${ECR_REGISTRY}/flask-app:${GITHUB_SHA}|g" k8s/deployment.yml
+
+          # apply Deployment & Service
+          kubectl apply -f k8s/deployment.yml
+          kubectl apply -f k8s/ingress.yml
